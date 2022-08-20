@@ -1,0 +1,24 @@
+set(COMMON_SOURCES
+    wgutil.c
+    socket.c
+    net.c
+    log.c
+    packets.c
+)
+
+set(COMMON_LIBRARIES
+    ${WIREGUARD_LIBRARY}
+)
+
+set(COMMON_INCLUDES
+    ${WIREGUARD_INCLUDES}
+)
+
+set(COMMON_LIBRARY ${CMAKE_PROJECT_NAME}_common)
+set(COMMON_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
+
+add_library(${COMMON_LIBRARY} STATIC ${COMMON_SOURCES})
+target_link_libraries(${COMMON_LIBRARY} ${COMMON_LIBRARIES})
+target_include_directories(${COMMON_LIBRARY} PRIVATE ${COMMON_INCLUDES})
+
+set(COMMON_LIBRARY ${COMMON_LIBRARY} PARENT_SCOPE)

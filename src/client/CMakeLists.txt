@@ -1,0 +1,22 @@
+set(CLIENT_SOURCES
+    args.c
+    main.c
+    client.c
+)
+
+set(CLIENT_LIBRARIES
+    ${WIREGUARD_LIBRARY}
+    ${COMMON_LIBRARY}
+)
+
+set(CLIENT_INCLUDES
+    ${WIREGUARD_INCLUDES}
+    ${COMMON_INCLUDES}
+)
+
+set(CLIENT_EXECUTABLE ${CMAKE_PROJECT_NAME}_client)
+
+add_executable(${CLIENT_EXECUTABLE} ${CLIENT_SOURCES})
+
+target_link_libraries(${CLIENT_EXECUTABLE} ${CLIENT_LIBRARIES})
+target_include_directories(${CLIENT_EXECUTABLE} PRIVATE ${CLIENT_INCLUDES})

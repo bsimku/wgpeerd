@@ -1,0 +1,22 @@
+set(SERVER_SOURCES
+    args.c
+    main.c
+    server.c
+)
+
+set(SERVER_LIBRARIES
+    ${WIREGUARD_LIBRARY}
+    ${COMMON_LIBRARY}
+)
+
+set(SERVER_INCLUDES
+    ${WIREGUARD_INCLUDES}
+    ${COMMON_INCLUDES}
+)
+
+set(SERVER_EXECUTABLE ${CMAKE_PROJECT_NAME}_server)
+
+add_executable(${SERVER_EXECUTABLE} ${SERVER_SOURCES})
+
+target_link_libraries(${SERVER_EXECUTABLE} ${SERVER_LIBRARIES})
+target_include_directories(${SERVER_EXECUTABLE} PRIVATE ${SERVER_INCLUDES})
