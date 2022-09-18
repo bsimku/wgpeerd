@@ -21,8 +21,6 @@ int socket_create() {
 }
 
 int socket_send(const int fd, const void *data, const size_t size) {
-    LOG(ERROR, "size = %d", size);
-
     ssize_t sent = 0;
 
     while (sent != size) {
@@ -35,8 +33,6 @@ int socket_send(const int fd, const void *data, const size_t size) {
 
         sent += bytes;
     }
-
-    LOG(ERROR, "sent %d bytes.", sent);
 
     return 0;
 }
