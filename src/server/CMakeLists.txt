@@ -20,3 +20,5 @@ add_executable(${SERVER_EXECUTABLE} ${SERVER_SOURCES})
 
 target_link_libraries(${SERVER_EXECUTABLE} ${SERVER_LIBRARIES})
 target_include_directories(${SERVER_EXECUTABLE} PRIVATE ${SERVER_INCLUDES})
+
+install(TARGETS ${SERVER_EXECUTABLE} DESTINATION bin)

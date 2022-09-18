@@ -20,3 +20,5 @@ add_executable(${CLIENT_EXECUTABLE} ${CLIENT_SOURCES})
 
 target_link_libraries(${CLIENT_EXECUTABLE} ${CLIENT_LIBRARIES})
 target_include_directories(${CLIENT_EXECUTABLE} PRIVATE ${CLIENT_INCLUDES})
+
+install(TARGETS ${CLIENT_EXECUTABLE} DESTINATION bin)
