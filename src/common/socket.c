@@ -43,7 +43,7 @@ int socket_read(const int fd, void *data, const size_t size) {
     while (bytesRead != size) {
         ssize_t ret = read(fd, data + bytesRead, size - bytesRead);
 
-        if (ret == -1) {
+        if (ret == -1 && errno != EAGAIN) {
             LOG(ERROR, "read() failed: %s", strerror(errno));
             return -1;
         }
