@@ -1,9 +1,10 @@
 set(COMMON_SOURCES
-    wgutil.c
-    socket.c
-    net.c
     log.c
+    memory.c
+    net.c
     packets.c
+    socket.c
+    wgutil.c
 )
 
 set(COMMON_LIBRARIES
