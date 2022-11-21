@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "log.h"
 #include "net.h"
 
 const char *Usage =
@@ -50,6 +51,7 @@ int args_parse(int argc, char *argv[], args_t *args) {
                 args_print_usage(argv[0]);
                 return 0; // TODO: exit.
             case 'v':
+                g_log_level = DEBUG;
                 break;
             case 'i':
                 args->interface = optarg; // TODO: BUG?
