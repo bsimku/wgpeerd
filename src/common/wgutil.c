@@ -6,6 +6,7 @@
 #include "wireguard.h"
 
 #include "log.h"
+#include "memory.h"
 
 char *wgutil_choose_device(const char *interface) {
     char *deviceNames = wg_list_device_names();
@@ -19,12 +20,12 @@ char *wgutil_choose_device(const char *interface) {
     size_t len;
 
     wg_for_each_device_name(deviceNames, deviceName, len) {
-        if (interface && strcmp(deviceName, interface) == 0 || !chosenDevice) {
+        if (interface && strcmp(deviceName, interface) == 0 || !interface && !chosenDevice) {
             if (chosenDevice) {
                 free(chosenDevice);
             }
 
-            chosenDevice = malloc(len + 1);
+            chosenDevice = safe_alloc(len + 1);
             strcpy(chosenDevice, deviceName);
         }
     }

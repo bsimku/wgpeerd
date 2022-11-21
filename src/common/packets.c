@@ -4,9 +4,10 @@
 #include <stdio.h>
 
 #include "log.h"
+#include "memory.h"
 
 packet_t *packet_allocate(const uint16_t type) {
-    packet_t *packet = malloc(sizeof(packet_t));
+    packet_t *packet = safe_alloc(sizeof(packet_t));
 
     if (!packet) {
         LOG(ERROR, "failed to allocate packet.");

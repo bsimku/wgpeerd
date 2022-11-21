@@ -12,12 +12,13 @@
 #include <errno.h>
 #include <arpa/inet.h>
 
-#include "socket.h"
-#include "packets.h"
 #include "log.h"
+#include "memory.h"
+#include "packets.h"
+#include "socket.h"
 
 client_t *client_new() {
-    return malloc(sizeof(client_t));
+    return safe_alloc(sizeof(client_t));
 }
 
 int client_init(client_t *client) {

@@ -10,12 +10,13 @@
 #include <sys/time.h>
 #include <netinet/in.h>
 
-#include "socket.h"
-#include "packets.h"
 #include "log.h"
+#include "memory.h"
+#include "packets.h"
+#include "socket.h"
 
 server_t *server_new() {
-    server_t *server = malloc(sizeof(server_t));
+    server_t *server = safe_alloc(sizeof(server_t));
 
     memset(server->fds, 0, sizeof(server->fds));
 
