@@ -47,7 +47,7 @@ int args_parse(int argc, char *argv[], args_t *args) {
                 return -1;
             case 'h':
                 args_print_usage(argv[0]);
-                return -1; // FIXME: return 0
+                exit(0);
             case 'v':
                 g_log_level = DEBUG;
                 break;
