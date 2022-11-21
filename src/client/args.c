@@ -49,7 +49,7 @@ int args_parse(int argc, char *argv[], args_t *args) {
                 return -1;
             case 'h':
                 args_print_usage(argv[0]);
-                return 0; // TODO: exit.
+                exit(0);
             case 'v':
                 g_log_level = DEBUG;
                 break;
