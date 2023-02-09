@@ -148,6 +148,7 @@ int server_loop(server_ctx *ctx) {
 
     switch (status) {
         case POLL_ERROR:
+            LOG(DEBUG, "poll error.");
             return -1;
         case POLL_NEW_CONNECTION:
             handle_new_connection(client);
