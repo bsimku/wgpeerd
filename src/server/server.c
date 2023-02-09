@@ -18,10 +18,8 @@
 server_t *server_new() {
     server_t *server = safe_alloc(sizeof(server_t));
 
-    memset(server->fds, 0, sizeof(server->fds));
-
     server->fd = -1;
-    server->nfds = 0;
+    server->epoll_fd = -1;
     server->nclients = 0;
 
     return server;
@@ -31,10 +29,31 @@ int server_init(server_t *server) {
     if (!server)
         return -1;
 
+    server->revent_idx = 0;
+    server->nrevents = 0;
+
+    server->epoll_fd = epoll_create1(0);
+
+    if (server->epoll_fd == -1) {
+        LOG(ERROR, "epoll_create1() failed: %s", strerror(errno));
+        return -1;
+    }
+
+
     server->fd = socket_create();
 
     if (server->fd == -1)
         return -1;
+
+    struct epoll_event event = {
+        .data.fd = server->fd,
+        .events = EPOLLIN
+    };
+
+    if (epoll_ctl(server->epoll_fd, EPOLL_CTL_ADD, server->fd, &event) == -1) {
+        LOG(ERROR, "epoll_ctl() failed: %s", strerror(errno));
+        return -1;
+    }
 
     const int opt = 1;
 
@@ -52,11 +71,6 @@ int server_init(server_t *server) {
         LOG(ERROR, "setsockopt() failed: %s", strerror(errno));
         return -1;
     }
-
-    server->fds[0].fd = server->fd;
-    server->fds[0].events = POLLIN;
-
-    server->nfds = 1;
 
     return 0;
 }
@@ -85,14 +99,19 @@ int server_listen(server_t *server, unsigned short port) {
 }
 
 client_t *server_add_client(server_t *server, int fd) {
+    struct epoll_event event = {
+        .data.fd = fd,
+        .events = EPOLLIN
+    };
+
+    if (epoll_ctl(server->epoll_fd, EPOLL_CTL_ADD, fd, &event) == -1) {
+        LOG(ERROR, "epoll_ctl() failed: %s", strerror(errno));
+        return NULL;
+    }
+
     client_t *client = &server->clients[server->nclients++];
 
     client->fd = fd;
-
-    server->fds[server->nfds].fd = fd;
-    server->fds[server->nfds].revents = POLLIN;
-
-    server->nfds++;
 
     return client;
 }
@@ -106,10 +125,6 @@ void server_remove_client(server_t *server, client_t *client) {
 
         for (int j = i + 1; j < server->nclients; j++) {
             server->clients[j - 1] = server->clients[j];
-        }
-
-        for (int j = i + 2; j < server->nfds; j++) {
-            server->fds[j - 1] = server->fds[j];
         }
 
         server->nclients--;
@@ -139,55 +154,53 @@ int server_accept(server_t *server, client_t **client) {
 
     *client = server_add_client(server, fd);
 
-    LOG(DEBUG, "accepted client.");
+    LOG(DEBUG, "accepted client (fd = %d)", fd);
 
     return 0;
 }
 
-poll_status server_handle_poll_revents(server_t *server, client_t **client) {
-    if (server->fds[0].revents) {
-        server->fds[0].revents = 0;
+client_t *server_find_client(server_t *server, int fd) {
+    for (int i = 0; i < server->nclients; i++) {
+        if (server->clients[i].fd == fd)
+            return &server->clients[i];
+    }
 
+    return NULL;
+}
+
+poll_status server_handle_poll_revents(server_t *server, client_t **client) {
+    if (server->revent_idx >= server->nrevents)
+        return POLL_TIMEOUT;
+
+    const struct epoll_event *revent = &server->revents[server->revent_idx++];
+
+    if (revent->events & EPOLLERR)
+        return POLL_ERROR;
+
+    if (revent->data.fd == server->fd) {
         if (server_accept(server, client) == -1)
             return POLL_ERROR;
 
         return POLL_NEW_CONNECTION;
     }
 
-    for (nfds_t i = 1; i < server->nfds; i++) {
-        const short revents = server->fds[i].revents;
+    LOG(DEBUG, "revent->fd = %d", revent->data.fd);
 
-        if (!revents)
-            continue;
+    *client = server_find_client(server, revent->data.fd);
 
-        server->fds[i].revents = 0;
-
-        *client = &server->clients[i - 1];
-
-        if (revents == POLLHUP) {
-            server_remove_client(server, *client);
-
-            return POLL_DISCONNECT;
-        }
-
-        if (revents != POLLIN) {
-            LOG(ERROR, "unexpected poll() result.");
-            return POLL_ERROR;
-        }
-
-        for (size_t j = 0; j < server->nclients; j++) {
-            if (server->fds[i].fd != server->clients[j].fd)
-                continue;
-
-            *client = &server->clients[j];
-
-            return POLL_RECEIVED_DATA;
-        }
-
+    if (*client == NULL)
         return POLL_ERROR;
+
+    if (revent->events & EPOLLHUP) {
+        server_remove_client(server, *client);
+
+        return POLL_DISCONNECT;
     }
 
-    return 0;
+    if (revent->events & EPOLLIN)
+        return POLL_RECEIVED_DATA;
+
+    return POLL_ERROR;
 }
 
 poll_status server_poll(server_t *server, client_t **client) {
@@ -196,19 +209,22 @@ poll_status server_poll(server_t *server, client_t **client) {
 
     poll_status status;
 
-    if ((status = server_handle_poll_revents(server, client)))
+    if ((status = server_handle_poll_revents(server, client)) != POLL_TIMEOUT)
         return status;
 
-    LOG(DEBUG, "poll: %d", server->nfds);
+    const int ret = epoll_wait(server->epoll_fd, server->revents, SERVER_MAX_REVENTS, -1);
 
-    const int ret = poll(server->fds, server->nfds, 5000);
+    LOG(DEBUG, "ret = %d", server->nrevents);
 
-    if (ret < 0) {
-        LOG(ERROR, "poll() failed: %s", strerror(errno));
+    if (ret == -1) {
+        LOG(ERROR, "epoll_wait() failed: %s", strerror(errno));
         return POLL_ERROR;
     }
     else if (ret == 0)
         return POLL_TIMEOUT;
+
+    server->nrevents = ret;
+    server->revent_idx = 0;
 
     return server_handle_poll_revents(server, client);
 }
@@ -237,6 +253,7 @@ void server_close(server_t *server) {
         return;
 
     close(server->fd);
+    close(server->epoll_fd);
 
     free(server);
 }

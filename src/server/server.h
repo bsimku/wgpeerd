@@ -4,11 +4,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <sys/poll.h>
+#include <sys/epoll.h>
 
 #include "packets.h"
 
 #define SERVER_MAX_CLIENTS 32
+#define SERVER_MAX_REVENTS 4
 
 typedef struct {
     int fd;
@@ -16,9 +17,11 @@ typedef struct {
 
 typedef struct {
     int fd;
-    struct pollfd fds[SERVER_MAX_CLIENTS + 1];
-    nfds_t nfds;
+    int epoll_fd;
     client_t clients[SERVER_MAX_CLIENTS];
+    struct epoll_event revents[SERVER_MAX_REVENTS];
+    int revent_idx;
+    int nrevents;
     size_t nclients;
     packet_t packet;
 } server_t;
