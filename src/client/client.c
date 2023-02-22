@@ -85,8 +85,15 @@ int client_read_packet(client_t *client, packet_t **packet) {
     if (!client || !packet)
         return -1;
 
-    if (socket_read_packet(client->fd, &client->packet) == -1)
+    const int ret = socket_read_packet(client->fd, &client->packet);
+
+    if (ret != SOCK_OK) {
+        if (ret == SOCK_DISCONNECTED) {
+            LOG(ERROR, "lost connection to server.");
+        }
+
         return -1;
+    }
 
     *packet = &client->packet;
 
