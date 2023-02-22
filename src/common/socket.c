@@ -15,7 +15,6 @@ int socket_create() {
 
     if (fd == -1) {
         LOG(ERROR, "socket() failed: %s", strerror(errno));
-        return -1;
     }
 
     return fd;
