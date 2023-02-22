@@ -1,4 +1,4 @@
-#include "net.h"
+#include "socket.h"
 
 #include <string.h>
 #include <errno.h>
@@ -28,13 +28,13 @@ int socket_send(const int fd, const void *data, const size_t size) {
 
         if (bytes == -1) {
             LOG(ERROR, "send() failed: %s", strerror(errno));
-            return -1;
+            return SOCK_ERROR;
         }
 
         sent += bytes;
     }
 
-    return 0;
+    return SOCK_OK;
 }
 
 int socket_read(const int fd, void *data, const size_t size) {
@@ -43,15 +43,22 @@ int socket_read(const int fd, void *data, const size_t size) {
     while (bytesRead != size) {
         ssize_t ret = read(fd, data + bytesRead, size - bytesRead);
 
-        if (ret == -1 && errno != EAGAIN) {
+        if (ret == 0)
+            return SOCK_DISCONNECTED;
+
+        if (ret < 0) {
+            if (errno == EAGAIN)
+                return SOCK_AGAIN;
+
             LOG(ERROR, "read() failed: %s", strerror(errno));
-            return -1;
+
+            return SOCK_ERROR;
         }
 
         bytesRead += ret;
     }
 
-    return 0;
+    return SOCK_OK;
 
 }
 
@@ -71,14 +78,16 @@ int socket_read_packet(const int fd, packet_t *packet) {
 
     packet_header *header = &packet->header;
 
-    if (socket_read(fd, header, sizeof(*header)) == -1)
-        return -1;
+    int ret;
+
+    if ((ret = socket_read(fd, header, sizeof(*header))) != SOCK_OK)
+        return ret;
 
     if (packet_parse_header(header) == -1)
         return -1;
 
-    if (socket_read(fd, &packet->data, header->size) == -1)
-        return -1;
+    if ((ret = socket_read(fd, &packet->data, header->size)) != SOCK_OK)
+        return ret;
 
     return 0;
 }
