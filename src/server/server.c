@@ -134,15 +134,10 @@ int server_accept(server_t *server, client_t **client) {
         return -1;
     }
 
-    struct sockaddr_in addr;
-    socklen_t size = sizeof(addr);
+    const int fd = socket_accept(server->fd);
 
-    const int fd = accept(server->fd, (struct sockaddr *)&addr, &size);
-
-    if (fd < 0) {
-        LOG(ERROR, "accept() failed: %s", strerror(errno));
+    if (fd == -1)
         return -1;
-    }
 
     if (socket_set_non_blocking(fd) == -1)
         return -1;
