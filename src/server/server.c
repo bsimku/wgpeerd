@@ -39,10 +39,12 @@ int server_init(server_t *server) {
         return -1;
     }
 
-
     server->fd = socket_create();
 
     if (server->fd == -1)
+        return -1;
+
+    if (socket_set_non_blocking(server->fd) == -1)
         return -1;
 
     struct epoll_event event = {
@@ -58,16 +60,6 @@ int server_init(server_t *server) {
     const int opt = 1;
 
     if (setsockopt(server->fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)) == -1) {
-        LOG(ERROR, "setsockopt() failed: %s", strerror(errno));
-        return -1;
-    }
-
-    struct timeval timeout = {
-        .tv_sec = 1,
-        .tv_usec = 0
-    };
-
-    if (setsockopt(server->fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == -1) {
         LOG(ERROR, "setsockopt() failed: %s", strerror(errno));
         return -1;
     }
@@ -152,6 +144,9 @@ int server_accept(server_t *server, client_t **client) {
         return -1;
     }
 
+    if (socket_set_non_blocking(fd) == -1)
+        return -1;
+
     *client = server_add_client(server, fd);
 
     LOG(DEBUG, "accepted client (fd = %d)", fd);
@@ -191,7 +186,7 @@ poll_status server_handle_poll_revents(server_t *server, client_t **client) {
     if (*client == NULL)
         return POLL_ERROR;
 
-    if (revent->events & EPOLLHUP) {
+    if (revent->events & EPOLLRDHUP) {
         server_remove_client(server, *client);
 
         return POLL_DISCONNECT;
@@ -204,6 +199,8 @@ poll_status server_handle_poll_revents(server_t *server, client_t **client) {
 }
 
 poll_status server_poll(server_t *server, client_t **client) {
+    LOG(DEBUG, "server_poll()");
+
     if (!server || !client)
         return POLL_ERROR;
 
@@ -233,8 +230,15 @@ int server_read_packet(server_t *server, client_t *client, packet_t **packet) {
     if (!server || !client)
         return -1;
 
-    if (socket_read_packet(client->fd, &server->packet) == -1)
+    const int ret = socket_read_packet(client->fd, &server->packet);
+
+    if (ret != SOCK_OK) {
+        if (ret == SOCK_DISCONNECTED) {
+            server_remove_client(server, client);
+        }
+
         return -1;
+    }
 
     *packet = &server->packet;
 
