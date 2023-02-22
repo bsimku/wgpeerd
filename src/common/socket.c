@@ -37,6 +37,20 @@ int socket_set_non_blocking(const int fd) {
     return 0;
 }
 
+int socket_accept(const int fd) {
+    struct sockaddr_in addr;
+    socklen_t size = sizeof(addr);
+
+    const int ret = accept(fd, (struct sockaddr *)&addr, &size);
+
+    if (ret < 0) {
+        LOG(ERROR, "accept() failed: %s", strerror(errno));
+        return -1;
+    }
+
+    return ret;
+}
+
 int socket_send(const int fd, const void *data, const size_t size) {
     ssize_t sent = 0;
 
