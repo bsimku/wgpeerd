@@ -67,9 +67,17 @@ int client_connect(client_t *client, const char *host, unsigned short port) {
     addr.sin_port = htons(port);
 
     if (connect(client->fd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-        LOG(ERROR, "connect() failed: %s", strerror(errno));
+        if (!client->connect_error) {
+            LOG(ERROR, "connect() failed: %s", strerror(errno));
+            client->connect_error = true;
+        }
+
         return -1;
     }
+
+    LOG(INFO, "connected to server.");
+
+    client->connect_error = false;
 
     return 0;
 }

@@ -1,12 +1,14 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
+#include <stdbool.h>
 #include <stddef.h>
 
 #include "packets.h"
 
 typedef struct {
     int fd;
+    bool connect_error;
     packet_t packet;
 } client_t;
 
