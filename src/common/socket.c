@@ -1,9 +1,10 @@
 #include "socket.h"
 
-#include <string.h>
 #include <errno.h>
-#include <sys/socket.h>
+#include <fcntl.h>
 #include <stdio.h>
+#include <string.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 #include "packets.h"
@@ -18,6 +19,22 @@ int socket_create() {
     }
 
     return fd;
+}
+
+int socket_set_non_blocking(const int fd) {
+    const int flags = fcntl(fd, F_GETFL, 0);
+
+    if (flags == -1) {
+        LOG(ERROR, "fcntl(F_GETFL) failed: %s", strerror(errno));
+        return -1;
+    }
+
+    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) {
+        LOG(ERROR, "fcntl(F_SETFL, O_NONBLOCK) failed: %s", strerror(errno));
+        return -1;
+    }
+
+    return 0;
 }
 
 int socket_send(const int fd, const void *data, const size_t size) {
@@ -91,4 +108,3 @@ int socket_read_packet(const int fd, packet_t *packet) {
 
     return 0;
 }
-

@@ -9,6 +9,7 @@
 #define SOCK_AGAIN -3
 
 int socket_create();
+int socket_set_non_blocking(const int fd);
 int socket_send(const int fd, const void *data, const size_t size);
 int socket_read(const int fd, void *data, const size_t size);
 int socket_send_packet(const int fd, packet_t *packet);
