@@ -18,7 +18,11 @@
 #include "socket.h"
 
 client_t *client_new() {
-    return safe_alloc(sizeof(client_t));
+    client_t *client = safe_alloc(sizeof(client_t));
+
+    client->connect_error = false;
+
+    return client;
 }
 
 int client_init(client_t *client) {
