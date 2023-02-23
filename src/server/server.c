@@ -15,6 +15,8 @@
 #include "packets.h"
 #include "socket.h"
 
+#define EPOLL_TIMEOUT 2000 // ms
+
 server_t *server_new() {
     server_t *server = safe_alloc(sizeof(server_t));
 
@@ -204,7 +206,7 @@ poll_status server_poll(server_t *server, client_t **client) {
     if ((status = server_handle_poll_revents(server, client)) != POLL_TIMEOUT)
         return status;
 
-    const int ret = epoll_wait(server->epoll_fd, server->revents, SERVER_MAX_REVENTS, -1);
+    const int ret = epoll_wait(server->epoll_fd, server->revents, SERVER_MAX_REVENTS, EPOLL_TIMEOUT);
 
     LOG(DEBUG, "ret = %d", server->nrevents);
 
