@@ -6,7 +6,7 @@
 
 log_level g_log_level = ERROR;
 
-char *log_level_to_string(log_level level) {
+static char *log_level_to_string(log_level level) {
     switch (level) {
         case NONE:
             return NULL;

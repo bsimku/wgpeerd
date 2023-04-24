@@ -92,7 +92,7 @@ int server_listen(server_t *server, unsigned short port) {
     return 0;
 }
 
-client_t *server_add_client(server_t *server, int fd) {
+static client_t *add_client(server_t *server, int fd) {
     struct epoll_event event = {
         .data.fd = fd,
         .events = EPOLLIN
@@ -110,7 +110,7 @@ client_t *server_add_client(server_t *server, int fd) {
     return client;
 }
 
-void server_remove_client(server_t *server, client_t *client) {
+static void remove_client(server_t *server, client_t *client) {
     for (int i = 0; i < server->nclients; i++) {
         if (server->clients[i].fd != client->fd)
             continue;
@@ -144,14 +144,14 @@ int server_accept(server_t *server, client_t **client) {
     if (socket_set_non_blocking(fd) == -1)
         return -1;
 
-    *client = server_add_client(server, fd);
+    *client = add_client(server, fd);
 
     LOG(DEBUG, "accepted client (fd = %d)", fd);
 
     return 0;
 }
 
-client_t *server_find_client(server_t *server, int fd) {
+static client_t *find_client(server_t *server, int fd) {
     for (int i = 0; i < server->nclients; i++) {
         if (server->clients[i].fd == fd)
             return &server->clients[i];
@@ -178,13 +178,13 @@ poll_status server_handle_poll_revents(server_t *server, client_t **client) {
 
     LOG(DEBUG, "revent->fd = %d", revent->data.fd);
 
-    *client = server_find_client(server, revent->data.fd);
+    *client = find_client(server, revent->data.fd);
 
     if (*client == NULL)
         return POLL_ERROR;
 
     if (revent->events & EPOLLRDHUP) {
-        server_remove_client(server, *client);
+        remove_client(server, *client);
 
         return POLL_DISCONNECT;
     }
@@ -231,7 +231,7 @@ int server_read_packet(server_t *server, client_t *client, packet_t **packet) {
 
     if (ret != SOCK_OK) {
         if (ret == SOCK_DISCONNECTED) {
-            server_remove_client(server, client);
+            remove_client(server, client);
         }
 
         return -1;

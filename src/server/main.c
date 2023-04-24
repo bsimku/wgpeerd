@@ -30,7 +30,7 @@ typedef struct {
     size_t npeers;
 } server_ctx;
 
-void send_endpoint_info(server_t *server, client_t *client, wg_peer *peer) {
+static void send_endpoint_info(server_t *server, client_t *client, wg_peer *peer) {
     packet_t *packet = PACKET_NEW(ENDPOINT_INFO_RES);
 
     if (!packet)
@@ -54,11 +54,11 @@ cleanup:
     free(packet);
 }
 
-void handle_new_connection(client_t *client) {
+static void handle_new_connection(client_t *client) {
     LOG(DEBUG, "new connection.");
 }
 
-void handle_endpoint_info_request(server_ctx *ctx, client_t *client, packet_t *packet) {
+static void handle_endpoint_info_request(server_ctx *ctx, client_t *client, packet_t *packet) {
     for (int i = 0; i < 32; i++) {
         printf("%x", packet->endpoint_info_req.public_key[i]);
     }
@@ -78,7 +78,7 @@ void handle_endpoint_info_request(server_ctx *ctx, client_t *client, packet_t *p
     }
 }
 
-int handle_packet(server_ctx *ctx, client_t *client, packet_t *packet) {
+static int handle_packet(server_ctx *ctx, client_t *client, packet_t *packet) {
     switch (packet->header.type) {
         default:
             LOG(DEBUG, "unknown packet type: 0x%x.", packet->header.type);
@@ -91,7 +91,7 @@ int handle_packet(server_ctx *ctx, client_t *client, packet_t *packet) {
     return 0;
 }
 
-int handle_received_data(server_ctx *ctx, client_t *client) {
+static int handle_received_data(server_ctx *ctx, client_t *client) {
     LOG(DEBUG, "received data.");
 
     packet_t *packet;
@@ -107,7 +107,7 @@ int handle_received_data(server_ctx *ctx, client_t *client) {
     return 0;
 }
 
-void check_endpoint_details(server_ctx *ctx) {
+static void check_endpoint_details(server_ctx *ctx) {
     wg_device *device = ctx->device;
 
     if (wg_get_device(&ctx->device, ctx->device->name) < 0) {
@@ -136,11 +136,11 @@ void check_endpoint_details(server_ctx *ctx) {
     wg_free_device(device);
 }
 
-void handle_timeout(server_ctx *ctx) {
+static void handle_timeout(server_ctx *ctx) {
     check_endpoint_details(ctx);
 }
 
-int server_loop(server_ctx *ctx) {
+static int server_loop(server_ctx *ctx) {
     LOG(DEBUG, "server_loop()");
     client_t *client;
 

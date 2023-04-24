@@ -24,7 +24,7 @@ typedef struct {
     struct sockaddr_in host;
 } client_ctx;
 
-int send_public_key(client_t *client, wg_key key) {
+static int send_public_key(client_t *client, wg_key key) {
     packet_t *packet = PACKET_NEW(ENDPOINT_INFO_REQ);
 
     if (!packet)
@@ -49,7 +49,7 @@ cleanup:
     return ret;
 }
 
-void update_endpoint(client_ctx *ctx, wg_key public_key, struct sockaddr_in *addr) {
+static void update_endpoint(client_ctx *ctx, wg_key public_key, struct sockaddr_in *addr) {
     wg_device *device = ctx->device;
 
     if (wg_get_device(&ctx->device, device->name) < 0) {
@@ -97,7 +97,7 @@ void update_endpoint(client_ctx *ctx, wg_key public_key, struct sockaddr_in *add
     }
 }
 
-void handle_endpoint_info_res(client_ctx *ctx, packet_endpoint_info_res *packet) {
+static void handle_endpoint_info_res(client_ctx *ctx, packet_endpoint_info_res *packet) {
     LOG(DEBUG, "PACKET_TYPE_ENDPOINT_INFO_RES");
 
     struct sockaddr_in in = {
@@ -141,7 +141,7 @@ void handle_endpoint_info_res(client_ctx *ctx, packet_endpoint_info_res *packet)
     update_endpoint(ctx, packet->public_key, &in);
 }
 
-int client_loop(client_ctx *ctx) {
+static int client_loop(client_ctx *ctx) {
     packet_t *packet;
 
     if (client_read_packet(ctx->client, &packet) == -1)
@@ -160,7 +160,7 @@ int client_loop(client_ctx *ctx) {
     return 0;
 }
 
-void connect_loop(client_ctx *ctx) {
+static void connect_loop(client_ctx *ctx) {
     if (client_init(ctx->client) == -1)
         return;
 
