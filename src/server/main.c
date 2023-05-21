@@ -235,7 +235,7 @@ int main(int argc, char *argv[]) {
 cleanup:
     server_close(net);
 
-    wg_free_device(device);
+    wg_free_device(ctx.device);
 
     return ret;
 }
