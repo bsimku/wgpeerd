@@ -71,7 +71,7 @@ static void handle_endpoint_info_request(server_ctx *ctx, client_t *client, pack
     wg_peer *peer;
 
     wg_for_each_peer(ctx->device, peer) {
-        if (memcmp(peer->public_key, packet->endpoint_info_req.public_key, 32) != 0)
+        if (!wgutil_key_matches(peer->public_key, packet->endpoint_info_req.public_key))
             continue;
 
         send_endpoint_info(ctx->server, client, peer);
