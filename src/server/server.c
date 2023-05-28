@@ -206,15 +206,18 @@ poll_status server_poll(server_t *server, client_t **client) {
     if ((status = server_handle_poll_revents(server, client)) != POLL_TIMEOUT)
         return status;
 
-    const int ret = epoll_wait(server->epoll_fd, server->revents, SERVER_MAX_REVENTS, EPOLL_TIMEOUT);
+    int ret;
 
-    LOG(DEBUG, "ret = %d", server->nrevents);
+    while ((ret = epoll_wait(server->epoll_fd, server->revents, SERVER_MAX_REVENTS, EPOLL_TIMEOUT) < 0)) {
+        if (errno == EINTR)
+            continue;
 
-    if (ret == -1) {
         LOG(ERROR, "epoll_wait() failed: %s", strerror(errno));
+
         return POLL_ERROR;
     }
-    else if (ret == 0)
+
+    if (ret == 0)
         return POLL_TIMEOUT;
 
     server->nrevents = ret;
