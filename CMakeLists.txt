@@ -1,6 +1,6 @@
 project(wg2nat LANGUAGES C)
 
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.12)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
