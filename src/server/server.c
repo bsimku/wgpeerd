@@ -208,7 +208,7 @@ poll_status server_poll(server_t *server, client_t **client) {
 
     int ret;
 
-    while ((ret = epoll_wait(server->epoll_fd, server->revents, SERVER_MAX_REVENTS, EPOLL_TIMEOUT) < 0)) {
+    while ((ret = epoll_wait(server->epoll_fd, server->revents, SERVER_MAX_REVENTS, EPOLL_TIMEOUT)) < 0) {
         if (errno == EINTR)
             continue;
 
