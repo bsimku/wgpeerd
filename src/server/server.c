@@ -111,6 +111,10 @@ static client_t *add_client(server_t *server, int fd) {
 }
 
 static void remove_client(server_t *server, client_t *client) {
+    if (epoll_ctl(server->epoll_fd, EPOLL_CTL_DEL, client->fd, NULL) == -1) {
+        LOG(ERROR, "epoll_ctl() failed: %s", strerror(errno));
+    }
+
     for (int i = 0; i < server->nclients; i++) {
         if (server->clients[i].fd != client->fd)
             continue;
