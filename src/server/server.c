@@ -51,7 +51,7 @@ int server_init(server_t *server) {
 
     struct epoll_event event = {
         .data.fd = server->fd,
-        .events = EPOLLIN
+        .events = EPOLLIN | EPOLLRDHUP
     };
 
     if (epoll_ctl(server->epoll_fd, EPOLL_CTL_ADD, server->fd, &event) == -1) {
