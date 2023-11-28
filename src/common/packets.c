@@ -9,11 +9,6 @@
 packet_t *packet_allocate(const uint16_t type) {
     packet_t *packet = safe_alloc(sizeof(packet_t));
 
-    if (!packet) {
-        LOG(ERROR, "failed to allocate packet.");
-        return NULL;
-    }
-
     packet->header.version = PROTOCOL_VERSION;
     packet->header.type = type;
     packet->header.size = packet_get_size(type);
