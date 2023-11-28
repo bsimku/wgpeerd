@@ -26,9 +26,6 @@ typedef struct {
 static void send_endpoint_info(server_t *server, client_t *client, wg_peer *peer) {
     packet_t *packet = PACKET_NEW(ENDPOINT_INFO_RES);
 
-    if (!packet)
-        return;
-
     memcpy(packet->endpoint_info_res.public_key, peer->public_key, 32);
 
     packet->endpoint_info_res.addr = peer->endpoint.addr4.sin_addr.s_addr;
