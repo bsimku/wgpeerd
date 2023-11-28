@@ -16,18 +16,11 @@
 #include "log.h"
 #include "packets.h"
 
-typedef struct {
-    wg_key public_key;
-    wg_endpoint endpoint;
-} peer_state;
-
 #define MAX_PEERS 32
 
 typedef struct {
     server_t *server;
     wg_device *device;
-    peer_state peers[MAX_PEERS];
-    size_t npeers;
 } server_ctx;
 
 static void send_endpoint_info(server_t *server, client_t *client, wg_peer *peer) {
@@ -220,8 +213,7 @@ int main(int argc, char *argv[]) {
 
     server_ctx ctx = {
         .server = net,
-        .device = device,
-        .npeers = 0
+        .device = device
     };
 
     while (true) {
