@@ -14,6 +14,7 @@
 
 #include "log.h"
 #include "memory.h"
+#include "net.h"
 #include "packets.h"
 #include "socket.h"
 
@@ -43,32 +44,10 @@ void client_setup_poll(client_t *client, struct pollfd *fd) {
 }
 
 int client_connect(client_t *client, const char *host, unsigned short port) {
-    struct addrinfo hints, *info;
-
-    memset(&hints, 0, sizeof(hints));
-
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-
-    int ret = getaddrinfo(host, NULL, &hints, &info);
-
-    if (ret != 0) {
-        LOG(ERROR, "getaddrinfo() for %s failed: %s", host, gai_strerror(ret));
-        return -1;
-    }
-
     struct sockaddr_in addr;
 
-    for (struct addrinfo *res = info; res != NULL; res = res->ai_next) {
-        if (res->ai_family != AF_INET)
-            continue;
-
-        addr = *(struct sockaddr_in *)res->ai_addr;
-
-        break;
-    }
-
-    freeaddrinfo(info);
+    if (!net_resolve_host(host, &addr))
+        return -1;
 
     addr.sin_port = htons(port);
 
