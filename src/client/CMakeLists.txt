@@ -1,5 +1,6 @@
 set(CLIENT_SOURCES
     args.c
+    fwd.c
     main.c
     client.c
 )
@@ -14,7 +15,7 @@ set(CLIENT_INCLUDES
     ${COMMON_INCLUDES}
 )
 
-set(CLIENT_EXECUTABLE ${CMAKE_PROJECT_NAME}_client)
+set(CLIENT_EXECUTABLE wgpeerc)
 
 add_executable(${CLIENT_EXECUTABLE} ${CLIENT_SOURCES})
 

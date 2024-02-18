@@ -9,32 +9,43 @@
 #include "memory.h"
 
 char *wgutil_choose_device(const char *interface) {
-    char *deviceNames = wg_list_device_names();
+    char *device_names = wg_list_device_names();
 
-    if (!deviceNames) {
+    if (!device_names) {
         LOG(ERROR, "wg_list_device_names() failed: %s", strerror(errno));
         return NULL;
     }
 
-    char *deviceName, *chosenDevice = NULL;
+    char *device_name, *chosen_device = NULL;
     size_t len;
 
-    wg_for_each_device_name(deviceNames, deviceName, len) {
-        if (interface && strcmp(deviceName, interface) == 0 || !interface && !chosenDevice) {
-            if (chosenDevice) {
-                free(chosenDevice);
+    wg_for_each_device_name(device_names, device_name, len) {
+        if (interface && strcmp(device_name, interface) == 0 || !interface && !chosen_device) {
+            if (chosen_device) {
+                free(chosen_device);
             }
 
-            chosenDevice = safe_alloc(len + 1);
-            strcpy(chosenDevice, deviceName);
+            chosen_device = safe_alloc(len + 1);
+            strcpy(chosen_device, device_name);
         }
     }
 
-    free(deviceNames);
+    free(device_names);
 
-    return chosenDevice;
+    return chosen_device;
 }
 
 bool wgutil_key_matches(wg_key a, wg_key b) {
     return memcmp(a, b, 32) == 0;
+}
+
+bool wgutil_key_from_base64(wg_key key, const char *b64str) {
+    const int ret = wg_key_from_base64(key, b64str);
+
+    if (ret < 0) {
+        LOG(ERROR, "failed to parse public key '%s': %s", b64str, strerror(ret));
+        return false;
+    }
+
+    return true;
 }

@@ -10,11 +10,21 @@
 #include "packets.h"
 #include "log.h"
 
-int socket_create() {
+int socket_create_tcp() {
     int fd = socket(AF_INET, SOCK_STREAM, 0);
 
     if (fd == -1) {
-        LOG(ERROR, "socket() failed: %s", strerror(errno));
+        LOG(ERROR, "socket_create_tcp: socket() failed: %s", strerror(errno));
+    }
+
+    return fd;
+}
+
+int socket_create_udp() {
+    int fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    if (fd == -1) {
+        LOG(ERROR, "socket_create_udp: socket() failed: %s", strerror(errno));
     }
 
     return fd;

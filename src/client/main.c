@@ -1,13 +1,19 @@
+#include <netinet/in.h>
 #include <stdio.h>
 #include <net/if.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <sys/socket.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <poll.h>
 
 #include <wireguard.h>
 
+#include "fwd.h"
+#include "memory.h"
+#include "socket.h"
 #include "wgutil.h"
 #include "args.h"
 #include "net.h"
@@ -15,14 +21,22 @@
 #include "log.h"
 #include "packets.h"
 
-#define RECONNECT_INTERVAL 3 * 1000 * 1000
+#define POLL_TIMEOUT 5000
+#define POLL_FD_IDX_CLIENT 0
+#define POLL_FD_IDX_FWD_CONNECT 1
+#define POLL_FD_IDX_FWD_LISTEN_BASE 2
 
 typedef struct {
     args_t *args;
     client_t *client;
     wg_device *device;
+    wg_key public_key;
     struct sockaddr_in host;
-} client_ctx;
+    nfds_t nfds;
+    struct pollfd *fds;
+    bool fwd_mode;
+    fwd_t fwd;
+} client_ctx_t;
 
 static int send_public_key(client_t *client, wg_key key) {
     packet_t *packet = PACKET_NEW(ENDPOINT_INFO_REQ);
@@ -49,7 +63,25 @@ cleanup:
     return ret;
 }
 
-static void update_endpoint(client_ctx *ctx, wg_key public_key, struct sockaddr_in *addr) {
+static void update_endpoint_fwd(client_ctx_t *ctx, wg_key public_key, struct sockaddr_in *addr) {
+    for (int i = 0; i < ctx->fwd.nfwds; i++) {
+        if (wgutil_key_matches(ctx->fwd.fwds[i].peer_key, public_key)) {
+            if (net_addr_matches(addr, &ctx->host)) {
+                fwd_set_endpoint(&ctx->fwd, i, &ctx->fwd.fwds[i].default_endpoint);
+            }
+            else if (net_addr_and_port_matches(&ctx->fwd.fwds[i].curr_endpoint, addr)) {
+                LOG(DEBUG, "peer endpoint address matches, skipping..");
+            }
+            else {
+                fwd_set_endpoint(&ctx->fwd, i, addr);
+            }
+
+            return;
+        }
+    }
+}
+
+static void update_endpoint(client_ctx_t *ctx, wg_key public_key, struct sockaddr_in *addr) {
     wg_device *device = ctx->device;
 
     if (wg_get_device(&ctx->device, device->name) < 0) {
@@ -97,7 +129,7 @@ static void update_endpoint(client_ctx *ctx, wg_key public_key, struct sockaddr_
     }
 }
 
-static void handle_endpoint_info_res(client_ctx *ctx, packet_endpoint_info_res *packet) {
+static void handle_endpoint_info_res(client_ctx_t *ctx, packet_endpoint_info_res *packet) {
     LOG(DEBUG, "PACKET_TYPE_ENDPOINT_INFO_RES");
 
     struct sockaddr_in in = {
@@ -115,7 +147,7 @@ static void handle_endpoint_info_res(client_ctx *ctx, packet_endpoint_info_res *
     {
         wg_key_b64_string key;
 
-        wg_key_to_base64(key, ctx->device->public_key);
+        wg_key_to_base64(key, ctx->public_key);
         LOG(DEBUG, "ctx->device->public_key = %s", key);
 
         wg_key_to_base64(key, packet->public_key);
@@ -123,29 +155,62 @@ static void handle_endpoint_info_res(client_ctx *ctx, packet_endpoint_info_res *
 
     }
 
-    if (wgutil_key_matches(ctx->device->public_key, packet->public_key)) {
+    if (wgutil_key_matches(ctx->public_key, packet->public_key)) {
         LOG(DEBUG, "got host address.");
 
-        wg_peer *peer;
-
-        wg_for_each_peer(ctx->device, peer) {
-            if (send_public_key(ctx->client, peer->public_key) == -1)
-                return;
-        }
-
         ctx->host = in;
+
+        if (ctx->fwd_mode) {
+            for (int i = 0; i < ctx->fwd.nfwds; i++) {
+                if (send_public_key(ctx->client, ctx->fwd.fwds[i].peer_key) == -1)
+                    return;
+            }
+        }
+        else {
+            wg_peer *peer;
+
+            wg_for_each_peer(ctx->device, peer) {
+                if (send_public_key(ctx->client, peer->public_key) == -1)
+                    return;
+            }
+        }
 
         return;
     }
 
-    update_endpoint(ctx, packet->public_key, &in);
+    if (ctx->fwd_mode) {
+        update_endpoint_fwd(ctx, packet->public_key, &in);
+    }
+    else {
+        update_endpoint(ctx, packet->public_key, &in);
+    }
 }
 
-static int client_loop(client_ctx *ctx) {
+static bool client_try_connect(client_ctx_t *ctx) {
+    LOG(DEBUG, __FUNCTION__);
+    if (ctx->client->connect_failed) {
+        client_close(ctx->client);
+
+        if (client_init(ctx->client) == -1)
+            return false;
+
+        client_setup_poll(ctx->client, &ctx->fds[POLL_FD_IDX_CLIENT]);
+    }
+
+    if (client_connect(ctx->client, ctx->args->address, ctx->args->port) == -1)
+        return false;
+
+    if (send_public_key(ctx->client, ctx->public_key) == -1)
+        return false;
+
+    return true;
+}
+
+static bool handle_client_received_packet(client_ctx_t *ctx) {
     packet_t *packet;
 
     if (client_read_packet(ctx->client, &packet) == -1)
-        return -1;
+        return false;
 
     switch (packet->header.type) {
         default:
@@ -157,26 +222,7 @@ static int client_loop(client_ctx *ctx) {
         }
     }
 
-    return 0;
-}
-
-static void connect_loop(client_ctx *ctx) {
-    if (client_init(ctx->client) == -1)
-        return;
-
-    if (client_connect(ctx->client, ctx->args->address, ctx->args->port) == -1)
-        goto error;
-
-    if (send_public_key(ctx->client, ctx->device->public_key) == -1)
-        goto error;
-
-    while (true) {
-        if (client_loop(ctx) == -1)
-            goto error;
-    }
-
-error:
-    client_close(ctx->client);
+    return true;
 }
 
 int main(int argc, char *argv[]) {
@@ -189,52 +235,115 @@ int main(int argc, char *argv[]) {
     LOG(DEBUG, "Address: %s", args.address);
     LOG(DEBUG, "Port: %d", args.port);
 
-    const char *deviceName = wgutil_choose_device(args.interface);
-
-    if (!deviceName) {
-        LOG(ERROR, "No suitable wireguard device found.");
-        return 2;
-    }
-
-    LOG(INFO, "Using device: %s", deviceName);
-
-    wg_device *device;
-
-    if (wg_get_device(&device, deviceName) < 0) {
-        LOG(ERROR, "Failed to get device %s: %s.", deviceName, strerror(errno));
-        return 3;
-    }
-
-    wg_key_b64_string key;
-    wg_key_to_base64(key, device->public_key);
-
-    LOG(DEBUG, "public_key = %s", key);
+    int ret = 0;
 
     client_t *client = client_new();
 
-    int ret = 0;
-
-    if (!client) {
-        ret = 4;
-        goto cleanup;
-    }
-
-    client_ctx ctx = {
+    client_ctx_t ctx = {
         .args = &args,
         .client = client,
-        .device = device,
-        .host.sin_port = 0
+        .device = NULL,
+        .host.sin_port = 0,
+        .fwd_mode = args.nfwds
     };
 
+    if (ctx.fwd_mode) {
+        if (!wgutil_key_from_base64(ctx.public_key, args.public_key))
+            goto error;
+
+        if (!fwd_init(&ctx.fwd, args.nfwds))
+            goto error;
+
+        for (int i = 0; i < args.nfwds; i++) {
+            fwd_add(&ctx.fwd, i, args.fwds[i].peer_key, args.fwds[i].endpoint, args.fwds[i].port);
+        }
+    }
+    else {
+        const char *device_name = wgutil_choose_device(args.interface);
+
+        if (!device_name) {
+            LOG(ERROR, "No suitable wireguard device found.");
+            goto error;
+        }
+
+        LOG(INFO, "Using device: %s", device_name);
+
+        if (wg_get_device(&ctx.device, device_name) < 0) {
+            LOG(ERROR, "Failed to get device %s: %s.", device_name, strerror(errno));
+            goto error;
+        }
+
+        memcpy(ctx.public_key, ctx.device->public_key, sizeof(wg_key));
+    }
+
+    if (ctx.fwd_mode) {
+        ctx.nfds = 2 + args.nfwds;
+    }
+    else {
+        ctx.nfds = 1;
+    }
+
+    ctx.fds = safe_alloc(ctx.nfds * sizeof(struct pollfd));
+
+    if (client_init(client) == -1)
+        goto error;
+
+    client_setup_poll(client, &ctx.fds[POLL_FD_IDX_CLIENT]);
+
+    if (ctx.fwd_mode) {
+        fwd_setup_poll_connect(&ctx.fwd, &ctx.fds[POLL_FD_IDX_FWD_CONNECT]);
+
+        for (int i = 0; i < args.nfwds; i++) {
+            fwd_setup_poll_listen(&ctx.fwd, i, &ctx.fds[POLL_FD_IDX_FWD_LISTEN_BASE + i]);
+        }
+    }
+
+    client_try_connect(&ctx);
+
     while (true) {
-        connect_loop(&ctx);
-        usleep(RECONNECT_INTERVAL);
+        const int ret = poll(ctx.fds, ctx.nfds, POLL_TIMEOUT);
+
+        if (ret == -1) {
+            LOG(ERROR, "poll() failed: %s", strerror(errno));
+            goto error;
+        }
+        else if (ret == 0)
+            continue;
+
+        const int status = client_check_poll(client, &ctx.fds[POLL_FD_IDX_CLIENT]);
+
+        if (status == CLIENT_RECEIVED_PACKET) {
+            handle_client_received_packet(&ctx);
+        }
+
+        if (!ctx.fwd_mode)
+            continue;
+
+        if (!fwd_check_poll_connect(&ctx.fwd, &ctx.fds[POLL_FD_IDX_FWD_CONNECT]))
+            goto error;
+
+        for (int i = 0; i < args.nfwds; i++) {
+            struct pollfd *fd = &ctx.fds[POLL_FD_IDX_FWD_LISTEN_BASE + i];
+
+            if (!fwd_check_poll_listen(&ctx.fwd, i, fd))
+                goto error;
+        }
+
+        if (ctx.client->connect_failed) {
+            client_try_connect(&ctx);
+        }
     }
 
 cleanup:
+    free(ctx.fds);
+
     if (client) {
         client_free(client);
     }
 
     return ret;
+
+error:
+    ret = 1;
+    goto cleanup;
 }

@@ -8,7 +8,8 @@
 #define SOCK_DISCONNECTED -2
 #define SOCK_AGAIN -3
 
-int socket_create();
+int socket_create_tcp();
+int socket_create_udp();
 int socket_set_non_blocking(const int fd);
 int socket_accept(const int fd);
 int socket_send(const int fd, const void *data, const size_t size);

@@ -41,7 +41,7 @@ int server_init(server_t *server) {
         return -1;
     }
 
-    server->fd = socket_create();
+    server->fd = socket_create_tcp();
 
     if (server->fd == -1)
         return -1;
