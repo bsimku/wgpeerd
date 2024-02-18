@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <poll.h>
+#include <time.h>
 
 #include "packets.h"
 
@@ -13,6 +14,7 @@
 
 typedef struct {
     int fd;
+    time_t last_conn;
     bool connect_failed;
     bool connected;
     packet_t packet;

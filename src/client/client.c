@@ -44,14 +44,15 @@ void client_setup_poll(client_t *client, struct pollfd *fd) {
 }
 
 int client_connect(client_t *client, const char *host, unsigned short port) {
+    client->connect_failed = false;
+    client->last_conn = time(NULL);
+
     struct sockaddr_in addr;
 
     if (!net_resolve_host(host, &addr))
         return -1;
 
     addr.sin_port = htons(port);
-
-    client->connect_failed = false;
 
     if (connect(client->fd, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
         if (errno != EINPROGRESS) {

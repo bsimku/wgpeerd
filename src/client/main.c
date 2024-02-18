@@ -21,6 +21,8 @@
 #include "log.h"
 #include "packets.h"
 
+#define RECONNECT_INTERVAL 5
+
 #define POLL_TIMEOUT 5000
 #define POLL_FD_IDX_CLIENT 0
 #define POLL_FD_IDX_FWD_CONNECT 1
@@ -187,8 +189,10 @@ static void handle_endpoint_info_res(client_ctx_t *ctx, packet_endpoint_info_res
 }
 
 static bool client_try_connect(client_ctx_t *ctx) {
-    LOG(DEBUG, __FUNCTION__);
     if (ctx->client->connect_failed) {
+        if (time(NULL) - ctx->client->last_conn < RECONNECT_INTERVAL)
+            return false;
+
         client_close(ctx->client);
 
         if (client_init(ctx->client) == -1)
@@ -301,7 +305,14 @@ int main(int argc, char *argv[]) {
     client_try_connect(&ctx);
 
     while (true) {
-        const int ret = poll(ctx.fds, ctx.nfds, POLL_TIMEOUT);
+        int ret;
+
+        if (client->connect_failed) {
+            ret = poll(ctx.fds + 1, ctx.nfds - 1, POLL_TIMEOUT);
+        }
+        else {
+            ret = poll(ctx.fds, ctx.nfds, POLL_TIMEOUT);
+        }
 
         if (ret == -1) {
             LOG(ERROR, "poll() failed: %s", strerror(errno));
