@@ -25,8 +25,7 @@ char *wgutil_choose_device(const char *interface) {
                 free(chosen_device);
             }
 
-            chosen_device = mem_alloc(len + 1);
-            strcpy(chosen_device, device_name);
+            chosen_device = strdup(device_name);
         }
     }
 
