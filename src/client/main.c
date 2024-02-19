@@ -36,6 +36,11 @@ typedef struct {
     struct sockaddr_in host;
     nfds_t nfds;
     struct pollfd *fds;
+    int npeers;
+    struct peer {
+        wg_key public_key;
+        struct sockaddr_in default_endpoint;
+    } *peers;
     bool fwd_mode;
     fwd_t fwd;
 } client_ctx_t;
@@ -83,6 +88,22 @@ static void update_endpoint_fwd(client_ctx_t *ctx, wg_key public_key, struct soc
     }
 }
 
+static void peer_set_endpoint(client_ctx_t *ctx, wg_peer *peer, struct sockaddr_in *addr) {
+    if (net_addr_and_port_matches(&peer->endpoint.addr4, addr))
+        return;
+
+    char old_addr[ADDR_MAX_LEN], new_addr[ADDR_MAX_LEN];
+
+    LOG(INFO, "%s:%d -> %s:%d", net_addr_to_str(&peer->endpoint.addr4, old_addr),
+                                ntohs(peer->endpoint.addr4.sin_port),
+                                net_addr_to_str(addr, new_addr),
+                                ntohs(addr->sin_port));
+
+    peer->endpoint.addr4 = *addr;
+
+    wg_set_device(ctx->device);
+}
+
 static void update_endpoint(client_ctx_t *ctx, wg_key public_key, struct sockaddr_in *addr) {
     wg_device *device = ctx->device;
 
@@ -100,32 +121,18 @@ static void update_endpoint(client_ctx_t *ctx, wg_key public_key, struct sockadd
             continue;
 
         if (net_addr_matches(addr, &ctx->host)) {
-            LOG(DEBUG, "peer and host address match, skipping..");
-            return;
+            for (int i = 0; i < ctx->npeers; i++) {
+                if (!wgutil_key_matches(ctx->peers[i].public_key, peer->public_key))
+                    continue;
+
+                peer_set_endpoint(ctx, peer, &ctx->peers[i].default_endpoint);
+
+                return;
+            }
         }
-
-        if (net_addr_and_port_matches(&peer->endpoint.addr4, addr)) {
-            LOG(DEBUG, "peer endpoint address matches, skipping..");
-            return;
+        else {
+            peer_set_endpoint(ctx, peer, addr);
         }
-
-        LOG(DEBUG, "found peer, updating.");
-
-        {
-            char addr[20];
-            inet_ntop(AF_INET, &peer->endpoint.addr4.sin_addr, addr, 20);
-            LOG(DEBUG, "%s:%d", addr, ntohs(peer->endpoint.addr4.sin_port));
-        }
-
-        peer->endpoint.addr4 = *addr;
-
-        {
-            char addr[20];
-            inet_ntop(AF_INET, &peer->endpoint.addr4.sin_addr, addr, 20);
-            LOG(DEBUG, "%s:%d", addr, ntohs(peer->endpoint.addr4.sin_port));
-        }
-
-        wg_set_device(ctx->device);
 
         return;
     }
@@ -248,8 +255,24 @@ int main(int argc, char *argv[]) {
         .client = client,
         .device = NULL,
         .host.sin_port = 0,
+        .npeers = 0,
+        .peers = NULL,
         .fwd_mode = args.nfwds
     };
+
+    if (args.npeers) {
+        ctx.peers = safe_alloc(args.npeers * sizeof(struct peer));
+
+        for (int i = 0; i < args.npeers; i++) {
+            if (!wgutil_key_from_base64(ctx.peers[i].public_key, args.peers[i].public_key))
+                goto error;
+
+            if (!net_parse_addr(&ctx.peers[i].default_endpoint, args.peers[i].endpoint))
+                goto error;
+        }
+
+        ctx.npeers = args.npeers;
+    }
 
     if (ctx.fwd_mode) {
         if (!wgutil_key_from_base64(ctx.public_key, args.public_key))
