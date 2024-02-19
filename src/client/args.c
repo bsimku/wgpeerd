@@ -79,8 +79,6 @@ error:
 bool parse_peer(const char *peer_str, args_peer_t *peer) {
     char *str = strdup(peer_str);
 
-    fprintf(stderr, "str = '%s'\n", str);
-
     char *peer_key = strtok(str, ",");
     char *endpoint = strtok(NULL, ",");
 
