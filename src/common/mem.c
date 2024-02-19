@@ -16,3 +16,13 @@ void *mem_alloc(size_t size) {
 
     return ptr;
 }
+void *mem_zalloc(size_t size) {
+    void *ptr = calloc(1, size);
+
+    if (!ptr && size) {
+        LOG(ERROR, "malloc() failed: %s", strerror(errno));
+        abort();
+    }
+
+    return ptr;
+}
