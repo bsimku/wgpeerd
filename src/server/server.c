@@ -18,11 +18,10 @@
 #define EPOLL_TIMEOUT 2000 // ms
 
 server_t *server_new() {
-    server_t *server = mem_alloc(sizeof(server_t));
+    server_t *server = mem_zalloc(sizeof(server_t));
 
     server->fd = -1;
     server->epoll_fd = -1;
-    server->nclients = 0;
 
     return server;
 }
