@@ -369,6 +369,8 @@ int main(int argc, char *argv[]) {
     }
 
 cleanup:
+    args_free(&args);
+
     free(ctx.fds);
 
     if (client) {
