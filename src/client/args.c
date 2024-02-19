@@ -115,11 +115,11 @@ int args_parse(int argc, char *argv[], args_t *args) {
     }
 
     if (args->nfwds) {
-        args->fwds = mem_alloc(args->nfwds * sizeof(args_fwd_t));
+        args->fwds = mem_zalloc(args->nfwds * sizeof(args_fwd_t));
     }
 
     if (args->npeers) {
-        args->peers = mem_alloc(args->npeers * sizeof(args_peer_t));
+        args->peers = mem_zalloc(args->npeers * sizeof(args_peer_t));
     }
 
     int fwd_idx = 0;
