@@ -25,5 +25,6 @@ typedef struct {
 
 args_t args_get_defaults();
 int args_parse(int argc, char *argv[], args_t *args);
+void args_free(args_t *args);
 
 #endif

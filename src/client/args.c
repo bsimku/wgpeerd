@@ -176,13 +176,37 @@ int args_parse(int argc, char *argv[], args_t *args) {
     return 0;
 
 error:
+    args_free(args);
+
+    return -1;
+}
+
+void args_free(args_t *args) {
     if (args->peers) {
+        for (int i = 0; i < args->npeers; i++) {
+            args_peer_t *peer = &args->peers[i];
+
+            if (peer->public_key)
+                free(peer->public_key);
+
+            if (peer->endpoint)
+                free(peer->endpoint);
+        }
+
         free(args->peers);
     }
 
     if (args->fwds) {
+        for (int i = 0; i < args->nfwds; i++) {
+            args_fwd_t *fwd = &args->fwds[i];
+
+            if (fwd->peer_key)
+                free(fwd->peer_key);
+
+            if (fwd->endpoint)
+                free(fwd->endpoint);
+        }
+
         free(args->fwds);
     }
-
-    return -1;
 }
