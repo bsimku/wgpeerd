@@ -19,12 +19,7 @@
 #include "socket.h"
 
 client_t *client_new() {
-    client_t *client = mem_alloc(sizeof(client_t));
-
-    client->connect_failed = false;
-    client->connected = false;
-
-    return client;
+    return mem_zalloc(sizeof(client_t));
 }
 
 int client_init(client_t *client) {
