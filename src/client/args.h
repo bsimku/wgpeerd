@@ -8,10 +8,17 @@ typedef struct {
 } args_fwd_t;
 
 typedef struct {
+    char *public_key;
+    char *endpoint;
+} args_peer_t;
+
+typedef struct {
     unsigned short port;
     char *address;
     char *interface;
     char *public_key;
+    args_peer_t *peers;
+    int npeers;
     args_fwd_t *fwds;
     int nfwds;
 } args_t;
