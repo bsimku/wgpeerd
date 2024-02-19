@@ -4,10 +4,10 @@
 #include <stdio.h>
 
 #include "log.h"
-#include "memory.h"
+#include "mem.h"
 
 packet_t *packet_allocate(const uint16_t type) {
-    packet_t *packet = safe_alloc(sizeof(packet_t));
+    packet_t *packet = mem_alloc(sizeof(packet_t));
 
     packet->header.version = PROTOCOL_VERSION;
     packet->header.type = type;

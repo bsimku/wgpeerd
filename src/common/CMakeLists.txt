@@ -1,6 +1,6 @@
 set(COMMON_SOURCES
     log.c
-    memory.c
+    mem.c
     net.c
     packets.c
     socket.c

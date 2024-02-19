@@ -7,7 +7,7 @@
 #include <string.h>
 
 #include "log.h"
-#include "memory.h"
+#include "mem.h"
 #include "net.h"
 
 const char *Usage =
@@ -115,11 +115,11 @@ int args_parse(int argc, char *argv[], args_t *args) {
     }
 
     if (args->nfwds) {
-        args->fwds = safe_alloc(args->nfwds * sizeof(args_fwd_t));
+        args->fwds = mem_alloc(args->nfwds * sizeof(args_fwd_t));
     }
 
     if (args->npeers) {
-        args->peers = safe_alloc(args->npeers * sizeof(args_peer_t));
+        args->peers = mem_alloc(args->npeers * sizeof(args_peer_t));
     }
 
     int fwd_idx = 0;

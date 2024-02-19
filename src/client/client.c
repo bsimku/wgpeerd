@@ -13,13 +13,13 @@
 #include <arpa/inet.h>
 
 #include "log.h"
-#include "memory.h"
+#include "mem.h"
 #include "net.h"
 #include "packets.h"
 #include "socket.h"
 
 client_t *client_new() {
-    client_t *client = safe_alloc(sizeof(client_t));
+    client_t *client = mem_alloc(sizeof(client_t));
 
     client->connect_failed = false;
     client->connected = false;

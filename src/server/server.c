@@ -11,14 +11,14 @@
 #include <netinet/in.h>
 
 #include "log.h"
-#include "memory.h"
+#include "mem.h"
 #include "packets.h"
 #include "socket.h"
 
 #define EPOLL_TIMEOUT 2000 // ms
 
 server_t *server_new() {
-    server_t *server = safe_alloc(sizeof(server_t));
+    server_t *server = mem_alloc(sizeof(server_t));
 
     server->fd = -1;
     server->epoll_fd = -1;

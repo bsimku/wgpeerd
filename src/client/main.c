@@ -12,7 +12,7 @@
 #include <wireguard.h>
 
 #include "fwd.h"
-#include "memory.h"
+#include "mem.h"
 #include "socket.h"
 #include "wgutil.h"
 #include "args.h"
@@ -261,7 +261,7 @@ int main(int argc, char *argv[]) {
     };
 
     if (args.npeers) {
-        ctx.peers = safe_alloc(args.npeers * sizeof(struct peer));
+        ctx.peers = mem_alloc(args.npeers * sizeof(struct peer));
 
         for (int i = 0; i < args.npeers; i++) {
             if (!wgutil_key_from_base64(ctx.peers[i].public_key, args.peers[i].public_key))
@@ -310,7 +310,7 @@ int main(int argc, char *argv[]) {
         ctx.nfds = 1;
     }
 
-    ctx.fds = safe_alloc(ctx.nfds * sizeof(struct pollfd));
+    ctx.fds = mem_alloc(ctx.nfds * sizeof(struct pollfd));
 
     if (client_init(client) == -1)
         goto error;

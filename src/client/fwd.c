@@ -5,7 +5,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include "memory.h"
+#include "mem.h"
 #include "net.h"
 #include "wgutil.h"
 #include "socket.h"
@@ -14,7 +14,7 @@
 #define BUFFER_LEN 4096
 
 bool fwd_init(fwd_t *fwd, int nfwds) {
-    fwd->fwds = safe_alloc(nfwds * sizeof(struct fwd));
+    fwd->fwds = mem_alloc(nfwds * sizeof(struct fwd));
     fwd->nfwds = nfwds;
 
     if ((fwd->connect_sock_fd = socket_create_udp()) == -1)

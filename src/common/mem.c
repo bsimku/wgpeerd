@@ -1,11 +1,11 @@
-#include "memory.h"
+#include "mem.h"
 
 #include <memory.h>
 #include <stdlib.h>
 
 #include "log.h"
 
-void *safe_alloc(size_t size) {
+void *mem_alloc(size_t size) {
     void *ptr = malloc(size);
 
     if (!ptr && size) {
