@@ -195,6 +195,13 @@ static void handle_endpoint_info_res(client_ctx_t *ctx, packet_endpoint_info_res
     }
 }
 
+static bool handle_client_connected(client_ctx_t *ctx) {
+    if (send_public_key(ctx->client, ctx->public_key) == -1)
+        return false;
+
+    return true;
+}
+
 static bool client_try_connect(client_ctx_t *ctx) {
     if (ctx->client->connect_failed) {
         if (time(NULL) - ctx->client->last_conn < RECONNECT_INTERVAL)
@@ -211,10 +218,7 @@ static bool client_try_connect(client_ctx_t *ctx) {
     if (client_connect(ctx->client, ctx->args->address, ctx->args->port) == -1)
         return false;
 
-    if (send_public_key(ctx->client, ctx->public_key) == -1)
-        return false;
-
-    return true;
+    return handle_client_connected(ctx);
 }
 
 static bool handle_client_received_packet(client_ctx_t *ctx) {
@@ -346,7 +350,10 @@ int main(int argc, char *argv[]) {
 
         const int status = client_check_poll(client, &ctx.fds[POLL_FD_IDX_CLIENT]);
 
-        if (status == CLIENT_RECEIVED_PACKET) {
+        if (status == CLIENT_CONNECTED) {
+            handle_client_connected(&ctx);
+        }
+        else if (status == CLIENT_RECEIVED_PACKET) {
             handle_client_received_packet(&ctx);
         }
 

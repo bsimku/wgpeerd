@@ -10,7 +10,8 @@
 
 #define CLIENT_OK 0
 #define CLIENT_ERROR -1
-#define CLIENT_RECEIVED_PACKET 1
+#define CLIENT_CONNECTED 1
+#define CLIENT_RECEIVED_PACKET 2
 
 typedef struct {
     int fd;

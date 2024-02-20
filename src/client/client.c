@@ -129,7 +129,7 @@ int client_check_poll(client_t *client, struct pollfd *fd) {
 
         client->connected = true;
 
-        return CLIENT_OK;
+        return CLIENT_CONNECTED;
     }
 
     if (fd->revents & POLLIN) {
