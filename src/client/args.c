@@ -54,9 +54,9 @@ args_t args_get_defaults() {
 bool parse_fwd(const char *fwd_str, args_fwd_t *fwd) {
     char *str = strdup(fwd_str);
 
-    char *listen_port = strtok(str, ",");
-    char *peer_key = strtok(NULL, ",");
-    char *endpoint = strtok(NULL, ",");
+    char *listen_port = strtok(str, ":");
+    char *peer_key = strtok(NULL, ":");
+    char *endpoint = strtok(NULL, "");
 
     if (!listen_port || !peer_key || !endpoint)
         goto error;
@@ -79,8 +79,8 @@ error:
 bool parse_peer(const char *peer_str, args_peer_t *peer) {
     char *str = strdup(peer_str);
 
-    char *peer_key = strtok(str, ",");
-    char *endpoint = strtok(NULL, ",");
+    char *peer_key = strtok(str, ":");
+    char *endpoint = strtok(NULL, "");
 
     if (!peer_key || !endpoint)
         goto error;
@@ -97,7 +97,6 @@ cleanup:
 error:
     ret = false;
     goto cleanup;
-
 }
 
 int args_parse(int argc, char *argv[], args_t *args) {
