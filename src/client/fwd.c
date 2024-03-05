@@ -97,6 +97,7 @@ static bool forward_packet(fwd_t *fwd, int fd_recv, int fd_send, struct sockaddr
         for (int i = 0; i < fwd->nfwds; i++) {
             if (net_addr_and_port_matches(&addr, &fwd->fwds[i].curr_endpoint)) {
                 fd_send = fwd->fwds[i].listen_sock_fd;
+                break;
             }
         }
 
