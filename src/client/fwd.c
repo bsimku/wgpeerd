@@ -29,9 +29,7 @@ bool fwd_add(fwd_t *fwd, int i_fwd, const char *peer_key, const char *endpoint, 
     if (!wgutil_key_from_base64(entry->peer_key, peer_key))
         return false;
 
-    entry->listen_sock_fd = socket_create_udp();
-
-    if (entry->listen_sock_fd == -1)
+    if ((entry->listen_sock_fd = socket_create_udp()) == -1)
         return false;
 
     const struct sockaddr_in addr = {
