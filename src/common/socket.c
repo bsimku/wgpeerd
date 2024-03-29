@@ -15,6 +15,7 @@ int socket_create_tcp() {
 
     if (fd == -1) {
         LOG(ERROR, "socket_create_tcp: socket() failed: %s", strerror(errno));
+        return -1;
     }
 
     return fd;
