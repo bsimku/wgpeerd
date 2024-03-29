@@ -73,6 +73,8 @@ static int handle_packet(server_ctx *ctx, client_t *client, packet_t *packet) {
         default:
             LOG(DEBUG, "unknown packet type: 0x%x.", packet->header.type);
             break;
+        case PACKET_TYPE_KEEPALIVE:
+            break;
         case PACKET_TYPE_ENDPOINT_INFO_REQ:
             handle_endpoint_info_request(ctx, client, packet);
             break;
