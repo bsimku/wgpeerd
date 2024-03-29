@@ -68,7 +68,11 @@ int socket_send(const int fd, const void *data, const size_t size) {
         ssize_t bytes = send(fd, data + sent, size - sent, 0);
 
         if (bytes == -1) {
+            if (errno == ECONNRESET)
+                return SOCK_DISCONNECTED;
+
             LOG(ERROR, "send() failed: %s", strerror(errno));
+
             return SOCK_ERROR;
         }
 
