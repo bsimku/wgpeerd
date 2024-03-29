@@ -18,6 +18,8 @@ packet_t *packet_allocate(const uint16_t type) {
 
 uint32_t packet_get_size(const uint16_t type) {
     switch (type) {
+        case PACKET_TYPE_KEEPALIVE:
+            return 0;
         case PACKET_TYPE_ENDPOINT_INFO_REQ:
             return sizeof(packet_endpoint_info_req);
         case PACKET_TYPE_ENDPOINT_INFO_RES:
