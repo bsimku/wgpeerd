@@ -203,7 +203,7 @@ static bool handle_client_connected(client_ctx_t *ctx) {
 }
 
 static bool client_try_connect(client_ctx_t *ctx) {
-    if (ctx->client->connect_failed) {
+    if (ctx->client->connect_failed || !ctx->client->connected) {
         if (time(NULL) - ctx->client->last_conn < RECONNECT_INTERVAL)
             return false;
 
@@ -225,7 +225,7 @@ static bool handle_client_received_packet(client_ctx_t *ctx) {
     packet_t *packet;
 
     if (client_read_packet(ctx->client, &packet) == -1)
-        return false;
+        return true;
 
     switch (packet->header.type) {
         default:
@@ -334,6 +334,10 @@ int main(int argc, char *argv[]) {
     while (true) {
         int ret;
 
+        if (ctx.client->connect_failed || !ctx.client->connected) {
+            client_try_connect(&ctx);
+        }
+
         if (client->connect_failed) {
             ret = poll(ctx.fds + 1, ctx.nfds - 1, POLL_TIMEOUT);
         }
@@ -368,10 +372,6 @@ int main(int argc, char *argv[]) {
 
             if (!fwd_check_poll_listen(&ctx.fwd, i, fd))
                 goto error;
-        }
-
-        if (ctx.client->connect_failed) {
-            client_try_connect(&ctx);
         }
     }
 
