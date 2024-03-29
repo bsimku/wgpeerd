@@ -13,7 +13,6 @@
 
 #include "fwd.h"
 #include "mem.h"
-#include "socket.h"
 #include "wgutil.h"
 #include "args.h"
 #include "net.h"
@@ -22,6 +21,7 @@
 #include "packets.h"
 
 #define RECONNECT_INTERVAL 5
+#define KEEPALIVE_INTERVAL 25
 
 #define POLL_TIMEOUT 5000
 #define POLL_FD_IDX_CLIENT 0
@@ -43,13 +43,11 @@ typedef struct {
     } *peers;
     bool fwd_mode;
     fwd_t fwd;
+    time_t last_keepalive;
 } client_ctx_t;
 
 static int send_public_key(client_t *client, wg_key key) {
     packet_t *packet = PACKET_NEW(ENDPOINT_INFO_REQ);
-
-    if (!packet)
-        return -1;
 
     memcpy(packet->endpoint_info_req.public_key, key, 32);
 
@@ -240,6 +238,24 @@ static bool handle_client_received_packet(client_ctx_t *ctx) {
     return true;
 }
 
+static bool handle_poll_timeout(client_ctx_t *ctx) {
+    time_t now = time(NULL);
+
+    bool ret = true;
+
+    if (now - ctx->last_keepalive >= KEEPALIVE_INTERVAL && ctx->client->connected) {
+        ctx->last_keepalive = now;
+
+        packet_t *packet = PACKET_NEW(KEEPALIVE);
+
+        client_send_packet(ctx->client, packet);
+
+        free(packet);
+    }
+
+    return ret;
+}
+
 int main(int argc, char *argv[]) {
     args_t args = args_get_defaults();
 
@@ -349,8 +365,12 @@ int main(int argc, char *argv[]) {
             LOG(ERROR, "poll() failed: %s", strerror(errno));
             goto error;
         }
-        else if (ret == 0)
+        else if (ret == 0) {
+            if (!handle_poll_timeout(&ctx))
+                goto error;
+
             continue;
+        }
 
         const int status = client_check_poll(client, &ctx.fds[POLL_FD_IDX_CLIENT]);
 
