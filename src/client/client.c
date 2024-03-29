@@ -90,7 +90,7 @@ int client_read_packet(client_t *client, packet_t **packet) {
         if (ret == SOCK_DISCONNECTED) {
             LOG(ERROR, "lost connection to server.");
             client->connect_failed = true;
-            client_close(client);
+            client->connected = false;
         }
 
         return -1;
@@ -117,7 +117,6 @@ int client_check_poll(client_t *client, struct pollfd *fd) {
         socklen_t err_size = sizeof(err);
 
         if (getsockopt(client->fd, SOL_SOCKET, SO_ERROR, &err, &err_size) == -1) {
-            client_close(client);
             LOG(ERROR, "getsockopt() failed: %s", strerror(errno));
             return CLIENT_ERROR;
         }
