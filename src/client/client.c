@@ -69,7 +69,15 @@ int client_send_packet(client_t *client, packet_t *packet) {
     if (!client)
         return -1;
 
-    return socket_send_packet(client->fd, packet);
+    const int ret = socket_send_packet(client->fd, packet);
+
+    if (ret == SOCK_DISCONNECTED) {
+        LOG(ERROR, "lost connection to server.");
+        client->connect_failed = true;
+        client->connected = false;
+    }
+
+    return ret;
 }
 
 int client_read_packet(client_t *client, packet_t **packet) {
