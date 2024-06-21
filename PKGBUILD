@@ -1,4 +1,4 @@
-pkgname=wg2nat-git
+pkgname=wgpeerd-git
 pkgver=r15.2e32645
 pkgrel=1
 pkgdesc="WireGuard through NAT"
@@ -8,8 +8,8 @@ makedepends=(
     cmake
     git
 )
-provides=(wg2nat)
-source=("${pkgname}::git+https://github.com/bsimku/wg2nat")
+provides=(wgpeerd)
+source=("${pkgname}::git+https://github.com/bsimku/wgpeerd")
 sha256sums=(SKIP)
 
 pkgver() {
