@@ -25,8 +25,7 @@
 
 #define POLL_TIMEOUT 5000
 #define POLL_FD_IDX_CLIENT 0
-#define POLL_FD_IDX_FWD_CONNECT 1
-#define POLL_FD_IDX_FWD_LISTEN_BASE 2
+#define POLL_FD_IDX_FWD_BASE 1
 
 typedef struct {
     args_t *args;
@@ -298,7 +297,7 @@ int main(int argc, char *argv[]) {
         if (!wgutil_key_from_base64(ctx.public_key, args.public_key))
             goto error;
 
-        if (!fwd_init(&ctx.fwd, args.nfwds))
+        if (!fwd_init(&ctx.fwd, args.bind_port, args.nfwds))
             goto error;
 
         for (int i = 0; i < args.nfwds; i++) {
@@ -324,7 +323,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (ctx.fwd_mode) {
-        ctx.nfds = 2 + args.nfwds;
+        ctx.nfds = 1 + 2 * args.nfwds;
     }
     else {
         ctx.nfds = 1;
@@ -338,10 +337,9 @@ int main(int argc, char *argv[]) {
     client_setup_poll(client, &ctx.fds[POLL_FD_IDX_CLIENT]);
 
     if (ctx.fwd_mode) {
-        fwd_setup_poll_connect(&ctx.fwd, &ctx.fds[POLL_FD_IDX_FWD_CONNECT]);
-
         for (int i = 0; i < args.nfwds; i++) {
-            fwd_setup_poll_listen(&ctx.fwd, i, &ctx.fds[POLL_FD_IDX_FWD_LISTEN_BASE + i]);
+            fwd_setup_poll_listen(&ctx.fwd, i, &ctx.fds[POLL_FD_IDX_FWD_BASE + i]);
+            fwd_setup_poll_connect(&ctx.fwd, i, &ctx.fds[POLL_FD_IDX_FWD_BASE + args.nfwds + i]);
         }
     }
 
@@ -384,14 +382,17 @@ int main(int argc, char *argv[]) {
         if (!ctx.fwd_mode)
             continue;
 
-        if (!fwd_check_poll_connect(&ctx.fwd, &ctx.fds[POLL_FD_IDX_FWD_CONNECT]))
-            goto error;
-
         for (int i = 0; i < args.nfwds; i++) {
-            struct pollfd *fd = &ctx.fds[POLL_FD_IDX_FWD_LISTEN_BASE + i];
+            struct pollfd *listen_fd = &ctx.fds[POLL_FD_IDX_FWD_BASE + i];
 
-            if (!fwd_check_poll_listen(&ctx.fwd, i, fd))
+            if (!fwd_check_poll_listen(&ctx.fwd, i, listen_fd))
                 goto error;
+
+            struct pollfd *connect_fd = &ctx.fds[POLL_FD_IDX_FWD_BASE + args.nfwds + i];
+
+            if (!fwd_check_poll_connect(&ctx.fwd, i, connect_fd))
+                goto error;
+
         }
     }
 
