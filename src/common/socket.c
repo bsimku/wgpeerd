@@ -31,6 +31,17 @@ int socket_create_udp() {
     return fd;
 }
 
+int socket_set_reuseport(const int fd) {
+   const int val = 1;
+
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &val, sizeof(val)) == -1) {
+        LOG(ERROR, "setsockopt(SOL_SOCKET, SO_REUSEPORT) failed: %s", strerror(errno));
+        return -1;
+    }
+
+    return 0;
+}
+
 int socket_set_non_blocking(const int fd) {
     const int flags = fcntl(fd, F_GETFL, 0);
 

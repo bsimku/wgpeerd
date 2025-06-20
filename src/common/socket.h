@@ -10,6 +10,7 @@
 
 int socket_create_tcp();
 int socket_create_udp();
+int socket_set_reuseport(const int fd);
 int socket_set_non_blocking(const int fd);
 int socket_accept(const int fd);
 int socket_send(const int fd, const void *data, const size_t size);
