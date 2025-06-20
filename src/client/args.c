@@ -10,6 +10,8 @@
 #include "mem.h"
 #include "net.h"
 
+#define DEFAULT_BIND_PORT 59912
+
 const char *Usage =
     "[option...] address\n"
     "\n"
@@ -20,6 +22,7 @@ const char *Usage =
     "  -p, --port       <port>               port to connect\n"
     "  -w, --public-key <key>                public key of WireGuard device\n"
     "  -P, --peer       <peer,endpoint>      peer's default endpoint\n"
+    "  -b, --bind-port  <port>               forwarding bind port\n"
     "  -f, --forward    <port,peer,endpoint> forward peer's traffic\n";
 
 const struct option c_long_options[] = {
@@ -28,6 +31,7 @@ const struct option c_long_options[] = {
     {"interface", required_argument, NULL, 'i'},
     {"public-key", required_argument, NULL, 'w'},
     {"peer", required_argument, NULL, 'P'},
+    {"bind-port", required_argument, NULL, 'b'},
     {"forward", required_argument, NULL, 'f'},
     {"port", required_argument, NULL, 'p'},
     {}
@@ -44,6 +48,7 @@ args_t args_get_defaults() {
         .address = NULL,
         .interface = NULL,
         .public_key = NULL,
+        .bind_port = DEFAULT_BIND_PORT,
         .fwds = NULL,
         .nfwds = 0
     };
@@ -102,7 +107,7 @@ error:
 int args_parse(int argc, char *argv[], args_t *args) {
     int ch, option_index = 0;
 
-    while ((ch = getopt_long(argc, argv, "hvi:P:w:f:p:", c_long_options, &option_index)) != -1) {
+    while ((ch = getopt_long(argc, argv, "hvi:P:w:b:f:p:", c_long_options, &option_index)) != -1) {
         if (ch == 'P') {
             args->npeers++;
         }
@@ -124,7 +129,7 @@ int args_parse(int argc, char *argv[], args_t *args) {
 
     optind = 1;
 
-    while ((ch = getopt_long(argc, argv, "hvi:w:P:f:p:", c_long_options, &option_index)) != -1) {
+    while ((ch = getopt_long(argc, argv, "hvi:w:P:b:f:p:", c_long_options, &option_index)) != -1) {
         switch (ch) {
             default:
                 print_usage(argv[0]);
@@ -148,6 +153,9 @@ int args_parse(int argc, char *argv[], args_t *args) {
                     goto error;
                 }
 
+                break;
+            case 'b':
+                args->bind_port = atoi(optarg);
                 break;
             case 'f':
                 if (!parse_fwd(optarg, &args->fwds[fwd_idx++])) {

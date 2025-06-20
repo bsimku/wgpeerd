@@ -19,6 +19,7 @@ typedef struct {
     char *public_key;
     args_peer_t *peers;
     int npeers;
+    int bind_port;
     args_fwd_t *fwds;
     int nfwds;
 } args_t;
