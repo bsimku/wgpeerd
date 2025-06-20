@@ -25,6 +25,8 @@ const char *Usage =
     "  -b, --bind-port  <port>               forwarding bind port\n"
     "  -f, --forward    <port,peer,endpoint> forward peer's traffic\n";
 
+const char *c_short_opts = "hvi:P:w:b:f:p:";
+
 const struct option c_long_options[] = {
     {"help", no_argument, NULL, 'h'},
     {"verbose", no_argument, NULL, 'v'},
@@ -107,7 +109,7 @@ error:
 int args_parse(int argc, char *argv[], args_t *args) {
     int ch, option_index = 0;
 
-    while ((ch = getopt_long(argc, argv, "hvi:P:w:b:f:p:", c_long_options, &option_index)) != -1) {
+    while ((ch = getopt_long(argc, argv, c_short_opts, c_long_options, &option_index)) != -1) {
         if (ch == 'P') {
             args->npeers++;
         }
@@ -129,7 +131,7 @@ int args_parse(int argc, char *argv[], args_t *args) {
 
     optind = 1;
 
-    while ((ch = getopt_long(argc, argv, "hvi:w:P:b:f:p:", c_long_options, &option_index)) != -1) {
+    while ((ch = getopt_long(argc, argv, c_short_opts, c_long_options, &option_index)) != -1) {
         switch (ch) {
             default:
                 print_usage(argv[0]);
