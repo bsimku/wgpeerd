@@ -28,7 +28,7 @@ const struct option c_long_options[] = {
     {"interface", required_argument, NULL, 'i'},
     {"public-key", required_argument, NULL, 'w'},
     {"peer", required_argument, NULL, 'P'},
-    {"forward", required_argument, NULL, 'l'},
+    {"forward", required_argument, NULL, 'f'},
     {"port", required_argument, NULL, 'p'},
     {}
 };
