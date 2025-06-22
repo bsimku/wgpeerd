@@ -110,6 +110,18 @@ void fwd_setup_poll_listen(fwd_t *fwd, int i_fwd, struct pollfd *fd) {
     fd->revents = 0;
 }
 
+static void clear_pipe(int pipe_fds[2]) {
+    struct pollfd pfd = {
+        .fd = pipe_fds[0],
+        .events = POLLIN
+    };
+
+    while (poll(&pfd, 1, 0) == 1) {
+        char buf[BUFFER_LEN];
+        read(pipe_fds[0], buf, BUFFER_LEN);
+    }
+}
+
 static bool forward_packet(fwd_t *fwd, int fd_recv, int fd_send) {
     ssize_t ret;
 
@@ -121,6 +133,7 @@ static bool forward_packet(fwd_t *fwd, int fd_recv, int fd_send) {
 
     if ((ret = splice(fwd->pipe_fds[0], NULL, fd_send, NULL, ret, SPLICE_F_MOVE)) == -1) {
         LOG(ERROR, "splice() failed: %s", strerror(errno));
+        clear_pipe(fwd->pipe_fds);
         return false;
     }
 
