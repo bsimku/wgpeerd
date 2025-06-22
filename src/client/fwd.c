@@ -177,7 +177,7 @@ bool fwd_check_poll_listen(fwd_t *fwd, int i_fwd, struct pollfd *fd) {
             entry->listener_connected = true;
         }
 
-        return forward_packet(fwd, entry->listen_sock_fd, entry->connect_sock_fd);
+        forward_packet(fwd, entry->listen_sock_fd, entry->connect_sock_fd);
     }
 
     return true;
